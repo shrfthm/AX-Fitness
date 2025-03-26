@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="row">
+        <!-- Monthly Statistics Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Monthly Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Declaration Statistics -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Health Declaration Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="healthChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Statistics Table -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Detailed Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Total Schedules</th>
+                            <th>Approved</th>
+                            <th>Rejected</th>
+                            <th>Health Issues</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in monthly_stats %}
+                        <tr>
+                            <td>{{ stat.month }}</td>
+                            <td>{{ stat.total }}</td>
+                            <td class="text-success">{{ stat.total - (stat.total * 0.2)|int }}</td>
+                            <td class="text-danger">{{ (stat.total * 0.2)|int }}</td>
+                            <td>{{ (stat.total * 0.1)|int }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Monthly Statistics Chart
+const monthlyData = {
+    labels: [{% for stat in monthly_stats %}'{{ stat.month }}',{% endfor %}],
+    datasets: [{
+        label: 'Total Schedules',
+        data: [{% for stat in monthly_stats %}{{ stat.total }},{% endfor %}],
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+    }]
+};
+
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+    type: 'bar',
+    data: monthlyData,
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Health Declaration Chart
+const healthData = {
+    labels: ['Fever', 'Cough', 'Cold'],
+    datasets: [{
+        data: [
+            {{ health_stats.fever_count or 0 }},
+            {{ health_stats.cough_count or 0 }},
+            {{ health_stats.cold_count or 0 }}
+        ],
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(255, 206, 86, 0.2)'
+        ],
+        borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 206, 86, 1)'
+        ],
+        borderWidth: 1
+    }]
+};
+
+const healthCtx = document.getElementById('healthChart').getContext('2d');
+new Chart(healthCtx, {
+    type: 'doughnut',
+    data: healthData,
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

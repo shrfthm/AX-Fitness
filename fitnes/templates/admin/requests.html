@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Requests{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clock"></i> Schedule Requests</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-success" onclick="approveAll()">
+                <i class="fas fa-check"></i> Approve All
+            </button>
+        </div>
+    </div>
+
+    <div class="row" id="requestsContainer">
+        {% for schedule in schedules %}
+        <div class="col-md-6 col-lg-4 mb-4" id="schedule-{{ schedule.id }}">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Request #{{ schedule.id }}</h5>
+                    <span class="badge bg-{{ schedule.status|lower }}">{{ schedule.status|title }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Member:</strong> {{ schedule.user.name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Date:</strong> {{ schedule.schedule_date.strftime('%Y-%m-%d') }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Time:</strong> {{ schedule.schedule_time.strftime('%H:%M') }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Age:</strong> {{ schedule.age }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Address:</strong> {{ schedule.address }}
+                    </div>
+                    
+                    {% if schedule.health_declaration %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Health Declaration</h6>
+                        <ul class="list-unstyled mb-0">
+                            {% if schedule.health_declaration.has_fever %}
+                            <li class="text-danger">⚠️ Has Fever</li>
+                            {% endif %}
+                            {% if schedule.health_declaration.has_cough %}
+                            <li class="text-danger">⚠️ Has Cough</li>
+                            {% endif %}
+                            {% if schedule.health_declaration.has_cold %}
+                            <li class="text-danger">⚠️ Has Cold</li>
+                            {% endif %}
+                            {% if not schedule.health_declaration.has_fever and not schedule.health_declaration.has_cough and not schedule.health_declaration.has_cold %}
+                            <li class="text-success">✓ No Health Issues Reported</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-grid gap-2">
+                        {% if schedule.status == 'pending' %}
+                        <button class="btn btn-success" onclick="updateStatus({{ schedule.id }}, 'approve')">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-danger" onclick="updateStatus({{ schedule.id }}, 'reject')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                        {% else %}
+                        <button class="btn btn-secondary" disabled>
+                            {{ schedule.status|title }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Toast for notifications -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+
+<script>
+function showToast(message, type = 'success') {
+    const toastEl = document.getElementById('liveToast');
+    const toast = new bootstrap.Toast(toastEl);
+    const toastBody = toastEl.querySelector('.toast-body');
+    toastBody.textContent = message;
+    toastEl.className = `toast bg-${type} text-white`;
+    toast.show();
+}
+
+async function updateStatus(scheduleId, action) {
+    try {
+        const response = await fetch(`/api/schedule/${scheduleId}/update-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Update the UI
+            const card = document.getElementById(`schedule-${scheduleId}`);
+            const statusBadge = card.querySelector('.badge');
+            const buttons = card.querySelector('.card-footer');
+            
+            statusBadge.className = `badge bg-${data.new_status}`;
+            statusBadge.textContent = data.new_status.charAt(0).toUpperCase() + data.new_status.slice(1);
+            
+            buttons.innerHTML = `
+                <div class="d-grid">
+                    <button class="btn btn-secondary" disabled>${data.new_status.charAt(0).toUpperCase() + data.new_status.slice(1)}</button>
+                </div>
+            `;
+            
+            showToast(data.message, 'success');
+            
+            // Update pending count in sidebar
+            const pendingCount = document.querySelector('.pending-count');
+            if (pendingCount) {
+                const currentCount = parseInt(pendingCount.textContent);
+                pendingCount.textContent = currentCount - 1;
+                if (currentCount - 1 <= 0) {
+                    pendingCount.style.display = 'none';
+                }
+            }
+        } else {
+            showToast(data.error, 'danger');
+        }
+    } catch (error) {
+        showToast('An error occurred while updating the schedule.', 'danger');
+    }
+}
+
+async function approveAll() {
+    if (!confirm('Are you sure you want to approve all pending requests?')) {
+        return;
+    }
+
+    const pendingCards = document.querySelectorAll('[id^="schedule-"]');
+    let approvedCount = 0;
+
+    for (const card of pendingCards) {
+        const scheduleId = card.id.split('-')[1];
+        const statusBadge = card.querySelector('.badge');
+        
+        if (statusBadge.textContent.trim().toLowerCase() === 'pending') {
+            try {
+                await updateStatus(scheduleId, 'approve');
+                approvedCount++;
+            } catch (error) {
+                console.error(`Error approving schedule ${scheduleId}:`, error);
+            }
+        }
+    }
+
+    if (approvedCount > 0) {
+        showToast(`Successfully approved ${approvedCount} requests.`, 'success');
+    } else {
+        showToast('No pending requests to approve.', 'info');
+    }
+}
+</script>
+
+<style>
+.bg-pending { background-color: #ffc107 !important; }
+.bg-approved { background-color: #198754 !important; }
+.bg-rejected { background-color: #dc3545 !important; }
+.toast { opacity: 0.9; }
+.toast.bg-success { background-color: #198754 !important; }
+.toast.bg-danger { background-color: #dc3545 !important; }
+.toast.bg-info { background-color: #0dcaf0 !important; }
+</style>
+{% endblock %} 

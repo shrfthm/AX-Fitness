@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Approved Schedules{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-calendar-check"></i> Approved Schedules</h2>
+        <div>
+            <button class="btn btn-outline-primary" onclick="exportSchedules()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date or '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date or '' }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter"></i> Apply Filter
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetFilter()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedules by Date -->
+    {% for date, schedules in schedules_by_date.items() %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ datetime.strptime(date, '%Y-%m-%d').strftime('%B %d, %Y') }}</h5>
+            <span class="badge bg-light text-dark">
+                {{ schedules|length }}/30 Slots Used
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Member</th>
+                            <th>Age</th>
+                            <th>Address</th>
+                            <th>Health Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules|sort(attribute='schedule_time') %}
+                        <tr>
+                            <td>{{ schedule.schedule_time.strftime('%I:%M %p') }}</td>
+                            <td>{{ schedule.user.name }}</td>
+                            <td>{{ schedule.age }}</td>
+                            <td>{{ schedule.address }}</td>
+                            <td>
+                                {% if schedule.health_declaration %}
+                                <button class="btn btn-sm btn-info" onclick="viewHealth({{ schedule.id }})">
+                                    <i class="fas fa-heartbeat"></i> View
+                                </button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="viewDetails({{ schedule.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No approved schedules found for the selected date range.
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Health Declaration Modal -->
+<div class="modal fade" id="healthModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Health Declaration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="healthDetails">
+                <!-- Health declaration details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('filterForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        if (value) params.append(key, value);
+    }
+    
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+});
+
+function resetFilter() {
+    window.location.href = window.location.pathname;
+}
+
+async function viewHealth(scheduleId) {
+    try {
+        const response = await fetch(`/api/schedule/${scheduleId}/health-declaration`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            const healthDetails = document.getElementById('healthDetails');
+            let healthHtml = '<ul class="list-group list-group-flush">';
+            
+            if (data.has_fever) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Fever</li>';
+            if (data.has_cough) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Cough</li>';
+            if (data.has_cold) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Cold</li>';
+            if (data.has_sore_throat) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Sore Throat</li>';
+            if (data.has_breathing_problems) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Breathing Problems</li>';
+            if (data.has_diarrhea) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Diarrhea</li>';
+            if (data.has_body_pains) healthHtml += '<li class="list-group-item text-danger">⚠️ Has Body Pains</li>';
+            if (data.has_travelled) healthHtml += '<li class="list-group-item text-warning">⚠️ Has Travelled Recently</li>';
+            if (data.has_contact_with_covid) healthHtml += '<li class="list-group-item text-warning">⚠️ Has Contact with COVID-19 Case</li>';
+            
+            if (!Object.values(data).some(val => val === true)) {
+                healthHtml += '<li class="list-group-item text-success">✓ No Health Issues Reported</li>';
+            }
+            
+            healthHtml += '</ul>';
+            healthDetails.innerHTML = healthHtml;
+            
+            const modal = new bootstrap.Modal(document.getElementById('healthModal'));
+            modal.show();
+        } else {
+            alert('Error loading health declaration');
+        }
+    } catch (error) {
+        alert('Error loading health declaration');
+    }
+}
+
+function viewDetails(scheduleId) {
+    window.location.href = `/admin/schedule/${scheduleId}`;
+}
+
+function exportSchedules() {
+    // Add export functionality
+    alert('Export functionality will be implemented here');
+}
+</script>
+
+<style>
+.card-header .badge {
+    font-size: 1rem;
+}
+.table th {
+    white-space: nowrap;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Appointment{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-calendar-plus"></i> Schedule Appointment</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="scheduleForm">
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required 
+                                   min="{{ today.strftime('%Y-%m-%d') }}">
+                            <div id="availabilityInfo" class="form-text mt-2"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="time" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="time" name="time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="age" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="age" name="age" required min="1" max="120">
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control" id="address" name="address" required rows="2"></textarea>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Health Declaration</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have fever?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="fever" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="fever" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have cough?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="cough" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="cough" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have cold?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="cold" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="cold" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have sore throat?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="sore_throat" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="sore_throat" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have breathing problems?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="breathing_problems" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="breathing_problems" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have diarrhea?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="diarrhea" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="diarrhea" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Do you have body pains?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="body_pains" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="body_pains" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Have you travelled recently?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="travelled" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="travelled" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Have you had contact with a COVID-19 case?</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="covid_contact" value="yes" required>
+                                                    <label class="form-check-label">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="covid_contact" value="no" required>
+                                                    <label class="form-check-label">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-save"></i> Submit Schedule
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('date').addEventListener('change', async function() {
+    const dateInput = this.value;
+    const availabilityInfo = document.getElementById('availabilityInfo');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (!dateInput) {
+        availabilityInfo.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/check-schedule-availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ date: dateInput })
+        });
+        
+        const data = await response.json();
+        
+        if (data.available) {
+            availabilityInfo.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> ${data.remaining_slots} slots available for this date
+                </div>`;
+            submitBtn.disabled = false;
+        } else {
+            availabilityInfo.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> Sorry, this date is already full. Please select another date.
+                </div>`;
+            submitBtn.disabled = true;
+        }
+    } catch (error) {
+        availabilityInfo.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> Error checking availability. Please try again.
+            </div>`;
+    }
+});
+
+// Set minimum date to today
+document.getElementById('date').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %} 
